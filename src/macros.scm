@@ -1,3 +1,4 @@
+;; Convenience functions
 (define (string s)
   `(,@(map char->integer (string->list s)) 0))
 
@@ -44,10 +45,21 @@
        body body* ...
        ,@(pop* (reverse '(reg reg* ...)))))))
 
+(define (fill-up-to byte addr)
+  (lambda ()
+    (assemble-expr `(db ,(make-list
+                          (- addr *pc*)
+                          byte)))))
+
 (define fill-until-end
   (lambda ()
     (assemble-expr
      `(db ,(make-list (- #x100000 *pc*) #xff)))))
 
-(define (n-copies-of n expr)
-  (apply append (make-list n expr)))
+(define (concat l) (apply append l))
+
+(define (repeat n expr)
+  (concat (make-list n expr)))
+
+(define (concat-map f l)
+  (concat (map f l)))

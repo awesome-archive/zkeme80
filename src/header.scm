@@ -1,0 +1,18 @@
+(include "macros.scm")
+(define header-asm
+  `((jp boot)
+    (db ,(map char->integer (string->list "SK")))
+    (db (0 0))
+
+    (dec sp)
+    (ret)
+    ,@(repeat 5 `(,@ (repeat 7 '((nop)))
+                     (ret)))
+    ,@(repeat 7 '((nop)))
+    ,(lambda ()
+       (format #t "System interrupt at 0x")
+       (PRINT-PC))
+    (jp sys-interrupt)
+    ,@(repeat 24 '((nop)))
+    (jp boot)
+    (db (#xff #xa5 #xff))))

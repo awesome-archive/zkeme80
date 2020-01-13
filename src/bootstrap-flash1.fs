@@ -1,5 +1,8 @@
 \ We define the rest of Forth.
 
+\ Possibly test interrupts later.
+\ : BAR FOO 200 SET-INTERRUPT ;
+\ BAR
 
 \ Parse the next word as binary number.
 : %B
@@ -229,7 +232,7 @@ BEGIN-STRUCTURE MENU-ENTRY
   FIELD: MENU-ENTRY.SELECTOR
   \ An xt of type ( -- ) that deselects the menu entry.
   FIELD: MENU-ENTRY.DESELECTOR
-  \ An xt of type ( -- ) that is menu entry's action.
+  \ An xt of type ( -- ) that is the menu entry's action.
   FIELD: MENU-ENTRY.ON-CLICK
 END-STRUCTURE
 
@@ -407,7 +410,7 @@ DRAW-LOADING-DOT
 \ Is n an arrow key?
 : ARROW-KEY?    ( n -- b ) DUP 1 4 WITHIN SWAP 9 = OR ;
 \ Block until an arrow key is read.
-: GET-ARROW-KEY ( -- k ) BEGIN KEY DUP ARROW-KEY? IF EXIT THEN DROP AGAIN ;
+: GET-ARROW-KEY ( -- k ) BEGIN KEYC DUP ARROW-KEY? IF EXIT THEN DROP AGAIN ;
 \ Set the click flag iff the xt is not null.
 : ?DO-CLICK ( xt|0 -- ) DUP MENU-ENTRY.ON-CLICK @ IF 1 TO CLICKED? THEN ;
 \ Maybe the key is enter, and act on it.

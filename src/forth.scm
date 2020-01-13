@@ -1144,7 +1144,6 @@
     (dw (0jump skip-comment))
 
     (dw (jump actual-word))
-    (dw (exit))
 
     (label skip-comment)
     (dw (drop))
@@ -1231,19 +1230,22 @@
     (dw (getc dup lit 34 = 0branch 6 drop exit emit branch 65514))
     (dw (exit))
 
-
+    ;; ( -- )
+    ;; Exit from the current word.
     ,@(defcode "EXIT" 0 'exit)
     ,@pop-de-rs
     ,@next
 
+    ;; ( addr -- )
+    ;; Execute code at address ADDR.
     ,@(defcode "EXECUTE" 0 'execute)
     ,@bc-to-hl
     (pop bc)
     (jp (hl))
     ,@next
 
-    ,@(defword "RECURSE" 0 'recurse)
-    (dw (latest @ >cfa exit))
+    ,@(defword "RECURSE" immediate 'recurse)
+    (dw (latest @ >cfa comma exit))
 
     ,@(defword "CATCH" 0 'catch)
     (dw (sp@ >r handler @ >r rp@ handler ! execute r> handler ! r> drop))
@@ -1341,15 +1343,15 @@
     (ret)
 
     ;; Not standard compilant.  Doesn't conform to run-time behavior.
+    ;; Exactly the same as LIT
     ,@(defcode "(')" 0 'tick)
-    (ld a (de))
-    (ld l a)
-    (inc de)
-    (ld a (de))
-    (ld h a)
-    (inc de)
     (push bc)
-    ,@hl-to-bc
+    (ld a (de))
+    (ld c a)
+    (inc de)
+    (ld a (de))
+    (ld b a)
+    (inc de)
     ,@next
 
     ;; Correct implementation of tick.
@@ -1644,11 +1646,11 @@
     (label abort-msg2)
     (db ,(string "occured at "))
     (label abort-msg3)
-    (db ,(string "2/>"))
+    (db ,(string ">>>"))
     (label abort-msg4)
     (db ,(string "<<<"))
     (label abort-msg5)
-    (db ,(string "Unconsumed input:"))
+    (db ,(string "Unconsumed input: "))
 
     ,@(defword "ABORT" 0 'abort)
     (dw (page lit abort-msg1 plot-string))
@@ -1854,6 +1856,111 @@
     (call unlock-flash)
     (call erase-flash-sector)
     (call lock-flash)
+    (ei)
+    ,@next
+
+    ;; Enable interrupts
+    ,@(defcode "ENABLE-INTERRUPTS" 0 'enable-interrupts)
+    (ei)
+    ,@next
+
+    ;; Disable interrupts
+    ,@(defcode "DISABLE-INTERRUPTS" 0 'disable-interrupts)
+    (di)
+    ,@next
+
+    ;; Interrupt mode 1
+    ,@(defcode "IM1" 0 'im1)
+    (im 1)
+    ,@next
+
+    ;; Interrupt mode 2
+    ,@(defcode "IM2" 0 'im2)
+    (im 2)
+    ,@next
+
+    ;; Dummy
+    ,@(defword "FOO" 0 'foo)
+    (dw (lit ddd exit))
+
+    (label ddd)
+    ((ex af afs))
+    (exx)
+    
+    (ld iy #x8100)
+    (ld de ddd-data)
+    (ld a (de))
+    (cp 10)
+    (jp nc ddd-too-long)
+    (jp ddd-cont)
+    (label ddd-too-long)
+    (ld a 0)
+    (label ddd-cont)
+    (ld b 2)
+    (ld c a)
+    (inc a)
+    (ld (de) a)
+
+    (ld e 0)
+    (ld l 10)
+    (call rect-xor)
+    (call fast-copy)
+
+    ((ex af afs))
+    (exx)
+
+
+    (ret)
+
+    
+    ;; ( addr byte -- )
+    ;; Set the current interrupt register to BYTE with routine at ADDR.
+    ,@(defcode "SET-INTERRUPT" 0 'set-interrupt)
+    (di)
+    ;; Write TOS into the interrupt register.
+    (ld a c)
+    (ld i a)
+    (pop hl)
+    ;; HL now contains the address of the interrupt service routine
+    ;; (ISR).  Save DE and use it as a pointer to write the ISR.
+    (push de)
+    
+    ;; 0x??3F
+    (ld d a)
+    (ld e #x3f)
+    (ld a l)
+    (ld (de) a)
+    (inc de)
+    (ld a h)
+    (ld (de) a)
+    
+    ;; 0x??7F
+    (ld e #x7f)
+    (ld a l)
+    (ld (de) a)
+    (inc de)
+    (ld a h)
+    (ld (de) a)
+
+    ;; 0x??BF
+    (ld e #xbf)
+    (ld a l)
+    (ld (de) a)
+    (inc de)
+    (ld a h)
+    (ld (de) a)
+
+    ;; 0x??FF
+    (ld e #xff)
+    (ld a l)
+    (ld (de) a)
+    (inc de)
+    (ld a h)
+    (ld (de) a)
+
+    (pop de)
+    (pop bc)
+    (im 2)
     (ei)
     ,@next
 
@@ -2081,7 +2188,4 @@
     ,@(defword "STAR" 0 'star)
     (dw (lit 42 emit exit))
 
-    ,(lambda ()
-       (format #t "End of forth.asm: 0x")
-       (PRINT-PC))
     ))
